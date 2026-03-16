@@ -7,6 +7,7 @@ from config import Config
 from fetcher.models import Tweet
 from processor.models import Topic
 from utils.rate_limiter import retry_with_backoff
+from utils.usage import UsageTracker
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +37,11 @@ _EXTRACT_PROMPT = """\
 
 
 class TopicExtractor:
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, tracker: UsageTracker | None = None):
         self._client = anthropic.Anthropic(api_key=config.anthropic_api_key)
         self._model = config.claude_model
         self._max_retries = config.max_retries
+        self._tracker = tracker
 
     def extract(self, tweets: list[Tweet]) -> list[Topic]:
         """Extract main topics from a list of tweets using Claude."""
@@ -50,15 +52,18 @@ class TopicExtractor:
         )
         prompt = _EXTRACT_PROMPT.format(tweets_text=tweets_text)
 
-        response_text = retry_with_backoff(
-            lambda: self._client.messages.create(
+        def _call():
+            resp = self._client.messages.create(
                 model=self._model,
                 max_tokens=1024,
                 system=_SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": prompt}],
-            ).content[0].text,
-            max_retries=self._max_retries,
-        )
+            )
+            if self._tracker:
+                self._tracker.add_claude(resp.usage.input_tokens, resp.usage.output_tokens)
+            return resp.content[0].text
+
+        response_text = retry_with_backoff(_call, max_retries=self._max_retries)
 
         topics = self._parse_topics(response_text)
         logger.info("Extracted %d topics", len(topics))

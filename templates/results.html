@@ -107,7 +107,7 @@
     border: 1px solid rgba(108,99,255,.2);
     border-radius: var(--radius);
     padding: 16px 24px;
-    margin-bottom: 28px;
+    margin-bottom: 16px;
     display: flex;
     align-items: center;
     gap: 16px;
@@ -119,6 +119,40 @@
     line-height: 1;
   }
   .summary .label { color: var(--muted); font-size: 0.88rem; }
+
+  /* Usage panel */
+  .usage-panel {
+    background: rgba(0,212,170,.06);
+    border: 1px solid rgba(0,212,170,.2);
+    border-radius: var(--radius);
+    padding: 16px 24px;
+    margin-bottom: 28px;
+  }
+  .usage-panel h4 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--accent2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+  }
+  .usage-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .usage-item { }
+  .usage-item .u-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+  .usage-item .u-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .usage-item .u-value.cost { color: var(--accent2); }
 </style>
 {% endblock %}
 
@@ -157,6 +191,42 @@
     </a>
   </div>
 </div>
+
+{% if job.usage %}
+<div class="usage-panel">
+  <h4>API 使用量</h4>
+  <div class="usage-grid">
+    <div class="usage-item">
+      <div class="u-label">X API リクエスト数</div>
+      <div class="u-value">{{ job.usage.x_requests }} 回</div>
+    </div>
+    <div class="usage-item">
+      <div class="u-label">取得ツイート数</div>
+      <div class="u-value">{{ job.usage.tweets_fetched }} 件</div>
+    </div>
+    <div class="usage-item">
+      <div class="u-label">Claude API 呼び出し数</div>
+      <div class="u-value">{{ job.usage.claude_calls }} 回</div>
+    </div>
+    <div class="usage-item">
+      <div class="u-label">入力トークン数</div>
+      <div class="u-value">{{ "{:,}".format(job.usage.input_tokens) }}</div>
+    </div>
+    <div class="usage-item">
+      <div class="u-label">出力トークン数</div>
+      <div class="u-value">{{ "{:,}".format(job.usage.output_tokens) }}</div>
+    </div>
+    <div class="usage-item">
+      <div class="u-label">合計トークン数</div>
+      <div class="u-value">{{ "{:,}".format(job.usage.total_tokens) }}</div>
+    </div>
+    <div class="usage-item">
+      <div class="u-label">推定コスト (Claude)</div>
+      <div class="u-value cost">{{ job.usage.estimated_cost }}</div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 {% for article in job.articles %}
 <div class="article-card">

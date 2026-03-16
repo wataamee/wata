@@ -5,16 +5,18 @@ import tweepy
 
 from config import Config
 from fetcher.models import Tweet
+from utils.usage import UsageTracker
 
 logger = logging.getLogger(__name__)
 
 
 class TwitterClient:
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, tracker: UsageTracker | None = None):
         self._client = tweepy.Client(
             bearer_token=config.x_bearer_token,
             wait_on_rate_limit=True,
         )
+        self._tracker = tracker
 
     def search_recent(self, query: str, max_results: int = 100) -> list[Tweet]:
         """Search recent tweets (last 7 days) for the given query."""
@@ -45,5 +47,7 @@ class TwitterClient:
             logger.error("Failed to fetch tweets: %s", e)
             raise
 
+        if self._tracker:
+            self._tracker.add_x_request(len(tweets))
         logger.info("Fetched %d tweets", len(tweets))
         return tweets

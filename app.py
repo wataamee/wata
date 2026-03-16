@@ -31,6 +31,7 @@ class Job:
     progress: list[str] = field(default_factory=list)
     articles: list[dict] = field(default_factory=list)  # [{topic, path, content}]
     error: str = ""
+    usage: dict = field(default_factory=dict)
     _queue: queue.Queue = field(default_factory=queue.Queue)
 
 
@@ -157,30 +158,32 @@ def _run_pipeline(job: Job, query: str, max_tweets: int, x_token: str, anthropic
         from processor.topic_extractor import TopicExtractor
         from processor.tweet_grouper import TweetGrouper
         from utils.file_writer import save_article
+        from utils.usage import UsageTracker
 
         config = Config(
             x_bearer_token=x_token,
             anthropic_api_key=anthropic_key,
             max_tweets=max_tweets,
         )
+        tracker = UsageTracker()
 
         _log(job, f"🔍 X APIでツイートを検索中: {query}")
-        tweets = TwitterClient(config).search_recent(query, max_results=max_tweets)
+        tweets = TwitterClient(config, tracker).search_recent(query, max_results=max_tweets)
         if not tweets:
             raise ValueError("一致するツイートが見つかりませんでした。クエリを変えてお試しください。")
         _log(job, f"✅ {len(tweets)} 件のツイートを取得しました")
 
         _log(job, "🧠 トピックを抽出中…")
-        topics = TopicExtractor(config).extract(tweets)
+        topics = TopicExtractor(config, tracker).extract(tweets)
         if not topics:
             raise ValueError("トピックを抽出できませんでした。")
         _log(job, f"✅ {len(topics)} 個のトピックを抽出: " + "、".join(t.name for t in topics))
 
         _log(job, "📂 ツイートをトピックに分類中…")
-        groups = TweetGrouper(config).group(tweets, topics)
+        groups = TweetGrouper(config, tracker).group(tweets, topics)
         _log(job, f"✅ {len(groups)} グループに分類しました")
 
-        writer = ArticleWriter(config)
+        writer = ArticleWriter(config, tracker)
         for i, group in enumerate(groups, 1):
             _log(job, f"✍️  [{i}/{len(groups)}] 「{group.topic.name}」の記事を生成中…")
             markdown = writer.generate(group)
@@ -194,6 +197,7 @@ def _run_pipeline(job: Job, query: str, max_tweets: int, x_token: str, anthropic
             })
             _log(job, f"✅ 「{group.topic.name}」の記事を保存: {path}")
 
+        job.usage = tracker.to_dict()
         job.status = "done"
         _log(job, f"🎉 完了！{len(job.articles)} 件の記事を生成しました")
 
