@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}トピック入力{% endblock %}
+
+{% block content %}
+<div class="steps">
+  <div class="step done">① APIキー設定</div>
+  <div class="step active">② トピック入力</div>
+  <div class="step">③ 記事生成</div>
+</div>
+
+<div class="card">
+  <h2>📝 記事にしたいトピックを入力</h2>
+
+  {% if error %}
+  <div class="alert alert-error">{{ error }}</div>
+  {% endif %}
+
+  <form method="POST" action="/generate">
+    <div class="form-group">
+      <label>トピック</label>
+      <input
+        type="text"
+        name="topic"
+        placeholder="例: AI、クリプト、Python、気候変動"
+        autocomplete="off"
+        required
+        autofocus
+      >
+      <p class="hint">日本語・英語どちらでも入力できます</p>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px">
+      <div class="form-group" style="margin-bottom:0">
+        <label>言語フィルター</label>
+        <select name="lang">
+          <option value="ja">日本語 (ja)</option>
+          <option value="en">English (en)</option>
+          <option value="">指定なし</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom:0">
+        <label>取得ツイート数</label>
+        <input
+          type="number"
+          name="max_tweets"
+          value="50"
+          min="10"
+          max="200"
+        >
+        <p class="hint">多いほど精度↑・時間↑</p>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+      記事を生成する →
+    </button>
+  </form>
+</div>
+
+<p class="muted" style="text-align:center">
+  APIキーを変更する場合は
+  <a href="/setup">こちら</a>
+</p>
+{% endblock %}

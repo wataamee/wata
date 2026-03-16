@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}生成結果{% endblock %}
+
+{% block head %}
+<style>
+  /* Article card */
+  .article-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .article-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .article-header h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .article-header p {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .badge {
+    background: rgba(108,99,255,.18);
+    color: #a49fff;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Markdown viewer */
+  .article-body {
+    padding: 24px;
+    display: none;
+  }
+  .article-body.open { display: block; }
+  .article-body pre {
+    background: #0a0c14;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: #c8d0e0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* Toggle button */
+  .toggle-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Download */
+  .download-bar {
+    padding: 12px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .download-bar a {
+    font-size: 0.82rem;
+    color: var(--accent2);
+  }
+  .download-bar span {
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+
+  /* Error */
+  .error-card {
+    background: rgba(255,92,92,.08);
+    border: 1px solid rgba(255,92,92,.25);
+    border-radius: var(--radius);
+    padding: 24px;
+    color: #ff8a8a;
+  }
+
+  /* Summary */
+  .summary {
+    background: rgba(108,99,255,.08);
+    border: 1px solid rgba(108,99,255,.2);
+    border-radius: var(--radius);
+    padding: 16px 24px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .summary .num {
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .summary .label { color: var(--muted); font-size: 0.88rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="steps">
+  <div class="step done">① APIキー設定</div>
+  <div class="step done">② トピック入力</div>
+  <div class="step done">③ 記事生成</div>
+</div>
+
+{% if job.status == "error" %}
+<div class="error-card">
+  <strong>❌ エラーが発生しました</strong>
+  <p style="margin-top:8px; font-size:0.9rem">{{ job.error }}</p>
+</div>
+<div style="margin-top:16px; text-align:center">
+  <a href="/" class="btn btn-secondary" style="display:inline-flex; gap:8px; padding:10px 20px; border-radius:8px; background:var(--border); color:var(--text); text-decoration:none">
+    ← やり直す
+  </a>
+</div>
+
+{% else %}
+<div class="summary">
+  <div>
+    <div class="num">{{ job.articles | length }}</div>
+    <div class="label">記事</div>
+  </div>
+  <div style="color:var(--muted); font-size:1.4rem">|</div>
+  <div>
+    <div class="num">{{ job.articles | sum(attribute='tweet_count') }}</div>
+    <div class="label">ツイート分析済み</div>
+  </div>
+  <div style="margin-left:auto">
+    <a href="/" class="btn btn-secondary" style="display:inline-flex; gap:8px; padding:10px 20px; border-radius:8px; background:var(--border); color:var(--text); text-decoration:none; font-size:0.85rem; font-weight:700">
+      ← 新しいトピック
+    </a>
+  </div>
+</div>
+
+{% for article in job.articles %}
+<div class="article-card">
+  <div class="article-header">
+    <div>
+      <h3>{{ article.topic }}</h3>
+      {% if article.description %}
+      <p>{{ article.description }}</p>
+      {% endif %}
+    </div>
+    <div style="display:flex; align-items:center; gap:8px; flex-shrink:0">
+      <span class="badge">{{ article.tweet_count }} tweets</span>
+      <button class="toggle-btn" onclick="toggleArticle(this, 'body-{{ loop.index }}')">
+        記事を見る ▾
+      </button>
+    </div>
+  </div>
+
+  <div class="article-body" id="body-{{ loop.index }}">
+    <pre>{{ article.content }}</pre>
+  </div>
+
+  <div class="download-bar">
+    <a href="#" onclick="downloadMd('{{ article.topic }}', document.querySelector('#body-{{ loop.index }} pre').textContent); return false;">
+      ⬇ Markdownをダウンロード
+    </a>
+    <span>保存先: {{ article.path }}</span>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<script>
+function toggleArticle(btn, id) {
+  const body = document.getElementById(id);
+  const open = body.classList.toggle("open");
+  btn.textContent = open ? "閉じる ▴" : "記事を見る ▾";
+}
+
+function downloadMd(topic, content) {
+  const blob = new Blob([content], { type: "text/markdown" });
+  const a    = document.createElement("a");
+  a.href     = URL.createObjectURL(blob);
+  a.download = topic.replace(/[^\w\u3040-\u9FFF]/g, "-") + ".md";
+  a.click();
+}
+</script>
+{% endblock %}
