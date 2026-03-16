@@ -220,13 +220,14 @@
       <div class="u-label">取得ツイート数</div>
       <div class="u-value">{{ job.usage.tweets_fetched }} 件</div>
     </div>
-    <div class="usage-item">
-      <div class="u-label">推定コスト (Basic プラン)</div>
-      <div class="u-value cost">{{ job.usage.x_cost_basic }}</div>
-    </div>
-    <div class="usage-item">
-      <div class="u-label">推定コスト (Pro プラン)</div>
-      <div class="u-value cost">{{ job.usage.x_cost_pro }}</div>
+    <div class="usage-item" style="grid-column: span 2;">
+      <div class="u-label">コスト</div>
+      <div class="u-value" style="font-size:0.85rem; font-weight:400; color:var(--muted);">
+        2026年2月より従量課金制（Pay-Per-Use）に移行。単価はエンドポイントにより異なります。<br>
+        実際の料金は
+        <a href="https://developer.x.com" target="_blank" rel="noopener" style="color:var(--accent2);">X Developer Console</a>
+        でご確認ください。
+      </div>
     </div>
   </div>
 
@@ -254,9 +255,6 @@
     </div>
   </div>
 
-  <div class="usage-note">
-    ※ X API コストは Basic ($100/月・10,000件) / Pro ($5,000/月・1,000,000件) の月額プランを按分した概算です。
-  </div>
 </div>
 {% endif %}
 
